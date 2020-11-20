@@ -105,7 +105,7 @@ public class ClusterNodeInfo {
      * @see org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState
      */
     public static final String STATE = "state";
-    
+
     /**
      * The broadcast id. If the broadcasting cache is used, a new id is set after startup.
      */
@@ -195,16 +195,21 @@ public class ClusterNodeInfo {
      */
     private static Clock clock = Clock.SIMPLE;
 
-    /** OAK-3398 : default lease duration 120sec **/
+    /**
+     * OAK-3398 : default lease duration 120sec
+     **/
     private static final int DEFAULT_LEASE_DURATION_SEC = SystemPropertySupplier.create("oak.documentMK.leaseDurationSeconds", 120)
             .loggingTo(LOG).validateWith(value -> value >= 0)
             .formatSetMessage((name, value) -> String.format("Lease duration set to: %ss (using system property %s)", name, value)).get();
     public static final int DEFAULT_LEASE_DURATION_MILLIS = 1000 * DEFAULT_LEASE_DURATION_SEC;
 
-    /** OAK-3398 : default update interval 10sec **/
+    /**
+     * OAK-3398 : default update interval 10sec
+     **/
     public static final int DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS = 1000 * 10;
 
-    /** OAK-3398 : default failure margin 20sec before actual lease timeout
+    /**
+     * OAK-3398 : default failure margin 20sec before actual lease timeout
      * (note that OAK-3399 / MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE eats
      * off another few seconds from this margin, by default 5sec,
      * so the actual default failure-margin is down to 15sec - and that is high-noon!)
@@ -220,7 +225,9 @@ public class ClusterNodeInfo {
     static final LeaseCheckMode DEFAULT_LEASE_CHECK_MODE =
             DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.STRICT;
 
-    /** OAK-3399 : max number of times we're doing a 1sec retry loop just before declaring lease failure **/
+    /**
+     * OAK-3399 : max number of times we're doing a 1sec retry loop just before declaring lease failure
+     **/
     private static final int MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE = 5;
 
     /**
@@ -330,7 +337,7 @@ public class ClusterNodeInfo {
     /**
      * In memory flag indicating that this ClusterNode is entry is new and is being added to
      * DocumentStore for the first time
-     *
+     * <p>
      * If false then it indicates that a previous entry for current node existed and that is being
      * reused
      */
@@ -352,7 +359,7 @@ public class ClusterNodeInfo {
                             String instanceId, boolean newEntry, boolean invisible) {
         this.id = id;
         this.startTime = getCurrentTime();
-        this.leaseEndTime = this.startTime +leaseTime;
+        this.leaseEndTime = this.startTime + leaseTime;
         this.previousLeaseEndTime = this.leaseEndTime;
         this.store = store;
         this.machineId = machineId;
@@ -368,7 +375,7 @@ public class ClusterNodeInfo {
     LeaseCheckMode getLeaseCheckMode() {
         return leaseCheckMode;
     }
-    
+
     public int getId() {
         return id;
     }
@@ -413,29 +420,31 @@ public class ClusterNodeInfo {
             }
 
             @Override
-            public void setInfo(Map<String, String> info) {}
+            public void setInfo(Map<String, String> info) {
+            }
 
             @Override
-            public void setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {}
+            public void setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
+            }
         };
     }
 
     /**
      * Get or create a cluster node info instance for the store.
      *
-     * @param store the document store (for the lease)
-     * @param recoveryHandler the recovery handler to call for a clusterId with
-     *                        an expired lease.
-     * @param machineId the machine id (null for MAC address)
-     * @param instanceId the instance id (null for current working directory)
+     * @param store               the document store (for the lease)
+     * @param recoveryHandler     the recovery handler to call for a clusterId with
+     *                            an expired lease.
+     * @param machineId           the machine id (null for MAC address)
+     * @param instanceId          the instance id (null for current working directory)
      * @param configuredClusterId the configured cluster id (or 0 for dynamic assignment)
      * @return the cluster node info
      */
     public static ClusterNodeInfo getInstance(DocumentStore store,
-        RecoveryHandler recoveryHandler,
-        String machineId,
-        String instanceId,
-        int configuredClusterId) {
+                                              RecoveryHandler recoveryHandler,
+                                              String machineId,
+                                              String instanceId,
+                                              int configuredClusterId) {
 
         return getInstance(store, recoveryHandler, machineId, instanceId, configuredClusterId, false);
     }
@@ -443,11 +452,11 @@ public class ClusterNodeInfo {
     /**
      * Get or create a cluster node info instance for the store.
      *
-     * @param store the document store (for the lease)
-     * @param recoveryHandler the recovery handler to call for a clusterId with
-     *                        an expired lease.
-     * @param machineId the machine id (null for MAC address)
-     * @param instanceId the instance id (null for current working directory)
+     * @param store               the document store (for the lease)
+     * @param recoveryHandler     the recovery handler to call for a clusterId with
+     *                            an expired lease.
+     * @param machineId           the machine id (null for MAC address)
+     * @param instanceId          the instance id (null for current working directory)
      * @param configuredClusterId the configured cluster id (or 0 for dynamic assignment)
      * @return the cluster node info
      */
@@ -469,19 +478,21 @@ public class ClusterNodeInfo {
         for (int i = 0; i < retries; i++) {
             Map.Entry<ClusterNodeInfo, Long> suggestedClusterNode =
                     createInstance(store, recoveryHandler, machineId,
-                            instanceId, configuredClusterId, i == 0, invisible);
+                            UUID.randomUUID().toString(), configuredClusterId, false, invisible);
+//            ClusterNodeInfo clusterNode = suggestedClusterNode.getKey();
             ClusterNodeInfo clusterNode = suggestedClusterNode.getKey();
             Long currentStartTime = suggestedClusterNode.getValue();
             String key = String.valueOf(clusterNode.id);
             UpdateOp update = new UpdateOp(key, clusterNode.newEntry);
             update.set(MACHINE_ID_KEY, clusterNode.machineId);
-            update.set(INSTANCE_ID_KEY, clusterNode.instanceId);
+            update.set(INSTANCE_ID_KEY,clusterNode.instanceId);
             update.set(LEASE_END_KEY, clusterNode.leaseEndTime);
             update.set(START_TIME_KEY, clusterNode.startTime);
             update.set(INFO_KEY, clusterNode.toString());
             update.set(STATE, ACTIVE.name());
             update.set(OAK_VERSION_KEY, OAK_VERSION);
             update.set(INVISIBLE, invisible);
+            //clusterNode.newEntry = true;
 
             ClusterNodeInfoDocument before = null;
             final boolean success;
@@ -619,25 +630,26 @@ public class ClusterNodeInfo {
             candidates.add(new ClusterNodeInfo(id, store, mId, iId, false, invisible));
             startTimes.put(id, doc.getStartTime());
         }
-
-        if (candidates.isEmpty()) {
-            // No usable existing entry found
-            int clusterNodeId;
-            if (configuredClusterId != 0) {
-                if (alreadyExistingConfigured != null) {
-                    throw new DocumentStoreException(
-                            "Configured cluster node id " + configuredClusterId + " already in use: " + reuseFailureReason);
-                }
-                clusterNodeId = configuredClusterId;
-            } else {
-                clusterNodeId = maxId + 1;
-            }
-            // No usable existing entry found so create a new entry
-            candidates.add(new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, true, invisible));
-        }
+//
+        //Always new version
+//        if (candidates.isEmpty()) {
+        // No usable existing entry found
+        int clusterNodeId;
+//        if (configuredClusterId != 0) {
+//            if (alreadyExistingConfigured != null) {
+//                throw new DocumentStoreException(
+//                        "Configured cluster node id " + configuredClusterId + " already in use: " + reuseFailureReason);
+//            }
+//            clusterNodeId = configuredClusterId;
+//        } else {
+            clusterNodeId = maxId + 1;
+//        }
+        // No usable existing entry found so create a new entry
+//        candidates.add(new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, true, invisible));
+//        }
 
         // use the best candidate
-        ClusterNodeInfo info = candidates.first();
+        ClusterNodeInfo info =new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, true, invisible);
         // and replace with an info matching the current machine and instance id
         info = new ClusterNodeInfo(info.id, store, machineId, instanceId, info.newEntry, invisible);
         return new AbstractMap.SimpleImmutableEntry<>(info, startTimes.get(info.getId()));
@@ -672,7 +684,7 @@ public class ClusterNodeInfo {
     }
 
     private static boolean waitForLeaseExpiry(DocumentStore store, ClusterNodeInfoDocument cdoc, long leaseEnd, String machineId,
-            String instanceId) {
+                                              String instanceId) {
         String key = cdoc.getId();
         LOG.info("Found an existing possibly active cluster node info (" + key + ") for this instance: " + machineId + "/"
                 + instanceId + ", will try use it.");
@@ -755,7 +767,7 @@ public class ClusterNodeInfo {
         // synchronized: we need to guard leaseCheckFailed in order to ensure
         //               that it is only set by 1 thread - thus handleLeaseFailure
         //               is guaranteed to be only called once
-        synchronized(this) {
+        synchronized (this) {
             if (leaseCheckFailed) {
                 // someone else won and marked leaseCheckFailed - so we only log/throw
                 throw leaseExpired(LEASE_CHECK_FAILED_MSG + " (since " + asISO8601(leaseEndTime) + ")", true);
@@ -833,7 +845,7 @@ public class ClusterNodeInfo {
      *
      * @param time the current time to check against the lease end.
      * @return {@code true} if the lease is considered expired, {@code false}
-     *         otherwise.
+     * otherwise.
      */
     private boolean isLeaseExpired(long time) {
         return time >= (leaseEndTime - leaseFailureMargin);
@@ -849,12 +861,12 @@ public class ClusterNodeInfo {
         // specifically the BackgroundLeaseUpdate and the BackgroundOperation.
 
         // actual stopping should be done in a separate thread, so:
-        if (leaseFailureHandler!=null) {
+        if (leaseFailureHandler != null) {
             final Runnable r = new Runnable() {
 
                 @Override
                 public void run() {
-                    if (leaseFailureHandler!=null) {
+                    if (leaseFailureHandler != null) {
                         leaseFailureHandler.handleLeaseFailure();
                     }
                 }
@@ -880,7 +892,7 @@ public class ClusterNodeInfo {
      *
      * @return {@code true} if the lease was renewed; {@code false} otherwise.
      * @throws DocumentStoreException if the operation failed or the lease
-     *          expired.
+     *                                expired.
      */
     public boolean renewLease() throws DocumentStoreException {
         long now = getCurrentTime();
@@ -896,7 +908,7 @@ public class ClusterNodeInfo {
         // lease requires renewal
 
         long updatedLeaseEndTime;
-        synchronized(this) {
+        synchronized (this) {
             // this is synchronized since access to leaseCheckFailed and leaseEndTime
             // are both normally synchronized to propagate values between renewLease()
             // and performLeaseCheck().
@@ -977,7 +989,7 @@ public class ClusterNodeInfo {
                 // in both cases the local instance lost the lease-update-game - and hence
                 // should behave and must consider itself as 'lease failed'
 
-                synchronized(this) {
+                synchronized (this) {
                     if (leaseCheckFailed) {
                         // somehow the instance figured out otherwise that the
                         // lease check failed - so we don't have to too - so we just log/throw
@@ -1085,29 +1097,33 @@ public class ClusterNodeInfo {
         }
         throw dse;
     }
-    
+
     /**
      * Update the cluster node info.
-     * 
+     *
      * @param info the map of changes
      */
     public void setInfo(Map<String, String> info) {
         // synchronized, because renewLease is also synchronized 
-        synchronized(this) {
+        synchronized (this) {
             UpdateOp update = new UpdateOp("" + id, false);
-            for(Entry<String, String> e : info.entrySet()) {
+            for (Entry<String, String> e : info.entrySet()) {
                 update.set(e.getKey(), e.getValue());
             }
             store.findAndUpdate(Collection.CLUSTER_NODES, update);
         }
     }
 
-    /** for testing purpose only, not to be changed at runtime! */
+    /**
+     * for testing purpose only, not to be changed at runtime!
+     */
     void setLeaseTime(long leaseTime) {
         this.leaseTime = leaseTime;
     }
 
-    /** for testing purpose only, not to be changed at runtime! */
+    /**
+     * for testing purpose only, not to be changed at runtime!
+     */
     void setLeaseUpdateInterval(long leaseUpdateInterval) {
         this.leaseUpdateInterval = leaseUpdateInterval;
     }
@@ -1125,7 +1141,7 @@ public class ClusterNodeInfo {
     }
 
     public void dispose() {
-        synchronized(this) {
+        synchronized (this) {
             if (leaseCheckFailed) {
                 LOG.warn("dispose: lease check failed, thus not marking instance as cleanly shut down.");
                 return;
@@ -1237,8 +1253,7 @@ public class ClusterNodeInfo {
                         exception = e2;
                     }
                 }
-            }
-            else {
+            } else {
                 if (!"(none)".equals(hwaFromSysProp)) {
                     if (hwaFromSysProp.length() == 12) {
                         // assume 12 hex digits are a mac address
@@ -1289,5 +1304,5 @@ public class ClusterNodeInfo {
 
     private static String asISO8601(long ms) {
         return DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(ms));
-   }
+    }
 }

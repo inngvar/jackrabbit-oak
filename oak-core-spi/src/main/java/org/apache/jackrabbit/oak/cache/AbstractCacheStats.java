@@ -18,17 +18,16 @@
 
 package org.apache.jackrabbit.oak.cache;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.lang.String.format;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-
-import java.util.concurrent.TimeUnit;
-
-import com.google.common.base.Objects;
 import com.google.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.concurrent.TimeUnit;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.String.format;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 /**
  * Abstract base class for providing cache statistic via the {@link CacheStatsMBean}.
@@ -135,7 +134,7 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
 
     @Override
     public String cacheInfoAsString() {
-        return Objects.toStringHelper("CacheStats")
+        return com.google.common.base.MoreObjects.toStringHelper("CacheStats")
                 .add("hitCount", getHitCount())
                 .add("hitRate", format("%1.2f", getHitRate()))
                 .add("missCount", getMissCount())

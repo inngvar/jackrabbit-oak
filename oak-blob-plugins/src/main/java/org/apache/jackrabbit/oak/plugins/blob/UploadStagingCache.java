@@ -61,7 +61,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUpgradeUtils
@@ -407,7 +407,7 @@ public class UploadStagingCache implements Closeable {
                     result.setException(t);
                     retryQueue.add(id);
                 }
-            }, new SameThreadExecutorService());
+            }, new directExecutorService());
             LOG.debug("File [{}] scheduled for upload [{}]", upload, result);
         } catch (Exception e) {
             LOG.error("Error staging file for upload [{}]", upload, e);

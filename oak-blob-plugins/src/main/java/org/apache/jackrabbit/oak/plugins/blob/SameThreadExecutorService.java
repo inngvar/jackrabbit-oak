@@ -30,11 +30,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Class copied from the Guava 15, to make the AzureDataStore compatible with
- * the Guava 26 (where the SameThreadExecutorService is not present).
+ * the Guava 26 (where the directExecutorService is not present).
  *
  * TODO: Remove this class once the whole Oak is migrated to use Guava 26.
  */
-class SameThreadExecutorService extends AbstractListeningExecutorService {
+class directExecutorService extends AbstractListeningExecutorService {
     /**
      * Lock used whenever accessing the state variables
      * (runningTasks, shutdown, terminationCondition) of the executor
@@ -84,7 +84,7 @@ class SameThreadExecutorService extends AbstractListeningExecutorService {
         }
     }
 
-    // See sameThreadExecutor javadoc for unusual behavior of this method.
+    // See directExecutor javadoc for unusual behavior of this method.
     @Override
     public List<Runnable> shutdownNow() {
         shutdown();

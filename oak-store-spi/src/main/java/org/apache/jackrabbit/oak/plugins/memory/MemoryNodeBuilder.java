@@ -26,7 +26,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 //                                                                         //
 // WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! //
 
-import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -35,6 +35,7 @@ import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidNa
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Objects;
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;

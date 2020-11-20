@@ -26,14 +26,18 @@ import java.io.OutputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.FluentIterable;
 import com.google.common.io.Files;
 
+import com.google.common.io.MoreFiles;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -242,19 +246,16 @@ public class FileBlobStore extends AbstractBlobStore {
 
     @Override
     public Iterator<String> getAllChunkIds(final long maxLastModifiedTime) throws Exception {
-        FluentIterable<File> iterable = Files.fileTreeTraverser().postOrderTraversal(baseDir);
+        Stream<File> iterable = StreamSupport.stream(MoreFiles.fileTraverser().depthFirstPostOrder((Iterable)Arrays.asList(baseDir.listFiles())).spliterator(),false);
+        // Ignore the directories and files newer than maxLastModifiedTime if specified
         final Iterator<File> iter =
-                iterable.filter(new Predicate<File>() {
-                    // Ignore the directories and files newer than maxLastModifiedTime if specified
-                    @Override
-                    public boolean apply(@Nullable File input) {
-                        if (!input.isDirectory() && (
-                                (maxLastModifiedTime <= 0)
-                                    || FileUtils.isFileOlder(input, maxLastModifiedTime))) {
-                            return true;
-                        }
-                        return false;
+                iterable.filter((Predicate<File>) input -> {
+                    if (!input.isDirectory() && (
+                            (maxLastModifiedTime <= 0)
+                                || FileUtils.isFileOlder(input, maxLastModifiedTime))) {
+                        return true;
                     }
+                    return false;
                 }).iterator();
         return new AbstractIterator<String>() {
             @Override

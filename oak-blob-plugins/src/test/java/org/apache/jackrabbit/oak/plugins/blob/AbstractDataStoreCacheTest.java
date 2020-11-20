@@ -44,10 +44,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
-import com.google.common.util.concurrent.AbstractListeningExecutorService;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -239,9 +236,8 @@ public class AbstractDataStoreCacheTest {
             LOG.trace("After submitting to super....");
 
             futures.add(submit);
-            Futures.addCallback(submit, new TestFutureCallback<Integer>(afterLatch));
+            Futures.addCallback(submit, new TestFutureCallback<Integer>(afterLatch), MoreExecutors.newDirectExecutorService());
             LOG.trace("Added callback");
-
             return submit;
         }
 

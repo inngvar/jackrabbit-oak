@@ -24,10 +24,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
+import java.util.stream.StreamSupport;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -52,6 +50,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
 
 /**
+ *
  */
 public class FSBackend extends AbstractSharedBackend {
     private static final Logger LOG = LoggerFactory.getLogger(FSBackend.class);
@@ -73,21 +72,21 @@ public class FSBackend extends AbstractSharedBackend {
         fsPath = properties.getProperty(FS_BACKEND_PATH);
         if (this.fsPath == null || "".equals(this.fsPath)) {
             throw new DataStoreException(
-                "Could not initialize FSBackend from " + properties + ". [" + FS_BACKEND_PATH
-                    + "] property not found.");
+                    "Could not initialize FSBackend from " + properties + ". [" + FS_BACKEND_PATH
+                            + "] property not found.");
         }
         this.fsPath = normalizeNoEndSeparator(fsPath);
         fsPathDir = new File(this.fsPath);
         if (fsPathDir.exists() && fsPathDir.isFile()) {
             throw new DataStoreException(
-                "Can not create a directory " + "because a file exists with the same name: "
-                    + this.fsPath);
+                    "Can not create a directory " + "because a file exists with the same name: "
+                            + this.fsPath);
         }
         if (!fsPathDir.exists()) {
             boolean created = fsPathDir.mkdirs();
             if (!created) {
                 throw new DataStoreException(
-                    "Could not create directory: " + fsPathDir.getAbsolutePath());
+                        "Could not create directory: " + fsPathDir.getAbsolutePath());
             }
         }
     }
@@ -99,7 +98,7 @@ public class FSBackend extends AbstractSharedBackend {
             return new LazyFileInputStream(file);
         } catch (IOException e) {
             throw new DataStoreException("Error opening input stream of " + file.getAbsolutePath(),
-                e);
+                    e);
         }
     }
 
@@ -128,11 +127,11 @@ public class FSBackend extends AbstractSharedBackend {
                     } else {
                         throw new IOException(
                                 "Can not rename " + tmpFile.getAbsolutePath()
-                                + " to " + dest.getAbsolutePath()
-                                + " (media read only?)");
+                                        + " to " + dest.getAbsolutePath()
+                                        + " (media read only?)");
                     }
                 }
-            }  catch (IOException e) {
+            } catch (IOException e) {
                 throw new DataStoreException("Could not add record", e);
             } finally {
                 if (tmpFile != null) {
@@ -149,7 +148,7 @@ public class FSBackend extends AbstractSharedBackend {
         File file = getFile(identifier, fsPathDir);
         if (!file.exists() || !file.isFile()) {
             LOG.info("getRecord:Identifier [{}] not found. Took [{}] ms.", identifier,
-                (System.currentTimeMillis() - start));
+                    (System.currentTimeMillis() - start));
             throw new DataStoreException("Identifier [" + identifier + "] not found.");
         }
         return new FSBackendDataRecord(this, identifier, file);
@@ -157,17 +156,9 @@ public class FSBackend extends AbstractSharedBackend {
 
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
-        return Files.fileTreeTraverser().postOrderTraversal(fsPathDir)
-            .filter(new Predicate<File>() {
-                @Override public boolean apply(File input) {
-                    return input.isFile() && !normalizeNoEndSeparator(input.getParent())
-                        .equals(fsPath);
-                }
-            }).transform(new Function<File, DataIdentifier>() {
-                @Override public DataIdentifier apply(File input) {
-                    return new DataIdentifier(input.getName());
-                }
-            }).iterator();
+        return StreamSupport.stream(Files.fileTraverser().depthFirstPostOrder(fsPathDir).spliterator(), false)
+                .filter(input -> input.isFile() && !normalizeNoEndSeparator(input.getParent()).equals(fsPath))
+                .map((Function<File, DataIdentifier>) input -> new DataIdentifier(input.getName())).iterator();
     }
 
     @Override
@@ -192,7 +183,7 @@ public class FSBackend extends AbstractSharedBackend {
 
     @Override
     public void addMetadataRecord(InputStream input, String name)
-        throws DataStoreException {
+            throws DataStoreException {
         checkArgument(input != null, "input should not be null");
         checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
 
@@ -207,7 +198,7 @@ public class FSBackend extends AbstractSharedBackend {
             }
         } catch (IOException e) {
             LOG.error("Exception while adding metadata record with name {}, {}",
-                new Object[] {name, e});
+                    new Object[]{name, e});
             throw new DataStoreException("Could not add root record", e);
         }
     }
@@ -222,7 +213,7 @@ public class FSBackend extends AbstractSharedBackend {
             FileUtils.copyFile(input, file);
         } catch (IOException e) {
             LOG.error("Exception while adding metadata record file {} with name {}, {}",
-                input, name, e);
+                    input, name, e);
             throw new DataStoreException("Could not add root record", e);
         }
     }
@@ -232,7 +223,7 @@ public class FSBackend extends AbstractSharedBackend {
         checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
 
         for (File file : FileFilterUtils
-            .filter(FileFilterUtils.nameFileFilter(name), fsPathDir.listFiles())) {
+                .filter(FileFilterUtils.nameFileFilter(name), fsPathDir.listFiles())) {
             if (!file.isDirectory()) {
                 return new FSBackendDataRecord(this, new DataIdentifier(file.getName()), file);
             }
@@ -246,10 +237,10 @@ public class FSBackend extends AbstractSharedBackend {
 
         List<DataRecord> rootRecords = new ArrayList<DataRecord>();
         for (File file : FileFilterUtils
-            .filterList(FileFilterUtils.prefixFileFilter(prefix), fsPathDir.listFiles())) {
+                .filterList(FileFilterUtils.prefixFileFilter(prefix), fsPathDir.listFiles())) {
             if (!file.isDirectory()) { // skip directories which are actual data store files
                 rootRecords
-                    .add(new FSBackendDataRecord(this, new DataIdentifier(file.getName()), file));
+                        .add(new FSBackendDataRecord(this, new DataIdentifier(file.getName()), file));
             }
         }
         return rootRecords;
@@ -260,11 +251,11 @@ public class FSBackend extends AbstractSharedBackend {
         checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
 
         for (File file : FileFilterUtils
-            .filterList(FileFilterUtils.nameFileFilter(name), fsPathDir.listFiles())) {
+                .filterList(FileFilterUtils.nameFileFilter(name), fsPathDir.listFiles())) {
             if (!file.isDirectory()) { // skip directories which are actual data store files
                 if (!file.delete()) {
                     LOG.warn("Failed to delete root record {} ",
-                        new Object[] {file.getAbsolutePath()});
+                            new Object[]{file.getAbsolutePath()});
                 } else {
                     return true;
                 }
@@ -278,11 +269,11 @@ public class FSBackend extends AbstractSharedBackend {
         checkArgument(null != prefix, "prefix should not be empty");
 
         for (File file : FileFilterUtils
-            .filterList(FileFilterUtils.prefixFileFilter(prefix), fsPathDir.listFiles())) {
+                .filterList(FileFilterUtils.prefixFileFilter(prefix), fsPathDir.listFiles())) {
             if (!file.isDirectory()) { // skip directories which are actual data store files
                 if (!file.delete()) {
                     LOG.warn("Failed to delete root record {} ",
-                        new Object[] {file.getAbsolutePath()});
+                            new Object[]{file.getAbsolutePath()});
                 }
             }
         }
@@ -291,11 +282,11 @@ public class FSBackend extends AbstractSharedBackend {
     @Override
     public boolean metadataRecordExists(String name) {
         for (File file : FileFilterUtils
-            .filterList(FileFilterUtils.nameFileFilter(name), fsPathDir.listFiles())) {
+                .filterList(FileFilterUtils.nameFileFilter(name), fsPathDir.listFiles())) {
             if (!file.isDirectory()) { // skip directories which are actual data store files
                 if (!file.exists()) {
                     LOG.debug("File does not exist {} ",
-                        new Object[] {file.getAbsolutePath()});
+                            new Object[]{file.getAbsolutePath()});
                 } else {
                     return true;
                 }
@@ -307,18 +298,10 @@ public class FSBackend extends AbstractSharedBackend {
     @Override
     public Iterator<DataRecord> getAllRecords() {
         final AbstractSharedBackend backend = this;
-        return Files.fileTreeTraverser().postOrderTraversal(fsPathDir)
-            .filter(new Predicate<File>() {
-                @Override public boolean apply(File input) {
-                    return input.isFile() && !normalizeNoEndSeparator(input.getParent())
-                        .equals(fsPath);
-                }
-            }).transform(new Function<File, DataRecord>() {
-                @Override public DataRecord apply(File input) {
-                    return new FSBackendDataRecord(backend, new DataIdentifier(input.getName()),
-                        input);
-                }
-            }).iterator();
+        return StreamSupport.stream(Files.fileTraverser().depthFirstPostOrder(Arrays.asList(fsPathDir.listFiles())).spliterator(), false)
+                .filter(input -> input.isFile() && !normalizeNoEndSeparator(input.getParent()).equals(fsPath))
+                .map((Function<File, DataRecord>) input -> new FSBackendDataRecord(backend, new DataIdentifier(input.getName()),
+                        input)).iterator();
     }
 
 
@@ -339,7 +322,7 @@ public class FSBackend extends AbstractSharedBackend {
             }
         } catch (IOException e) {
             throw new DataStoreException("Unable to access reference key file " + file.getPath(),
-                e);
+                    e);
         }
     }
 
@@ -374,7 +357,7 @@ public class FSBackend extends AbstractSharedBackend {
         long lastModified = file.lastModified();
         if (lastModified == 0) {
             throw new DataStoreException(
-                "Failed to read record modified date: " + file.getAbsolutePath());
+                    "Failed to read record modified date: " + file.getAbsolutePath());
         }
         return lastModified;
     }
@@ -409,8 +392,8 @@ public class FSBackend extends AbstractSharedBackend {
                 }
             } catch (IOException e) {
                 throw new DataStoreException(
-                    "An IO Exception occurred while trying to set the last modified date: " + file
-                        .getAbsolutePath(), e);
+                        "An IO Exception occurred while trying to set the last modified date: " + file
+                                .getAbsolutePath(), e);
             }
         }
     }
@@ -432,7 +415,7 @@ public class FSBackend extends AbstractSharedBackend {
                 }
                 boolean deleted = parent.delete();
                 LOG.debug("Deleted parent [{}] of file [{}]: {}",
-                    parent, file.getAbsolutePath(), deleted);
+                        parent, file.getAbsolutePath(), deleted);
                 parent = parent.getParentFile();
             }
         } catch (IOException e) {
@@ -463,18 +446,20 @@ public class FSBackend extends AbstractSharedBackend {
         private File file;
 
         public FSBackendDataRecord(AbstractSharedBackend backend,
-            @NotNull DataIdentifier identifier, @NotNull File file) {
+                                   @NotNull DataIdentifier identifier, @NotNull File file) {
             super(backend, identifier);
             this.file = file;
             this.length = file.length();
             this.lastModified = file.lastModified();
         }
 
-        @Override public long getLength() throws DataStoreException {
+        @Override
+        public long getLength() throws DataStoreException {
             return length;
         }
 
-        @Override public InputStream getStream() throws DataStoreException {
+        @Override
+        public InputStream getStream() throws DataStoreException {
             try {
                 return new LazyFileInputStream(file);
             } catch (FileNotFoundException e) {
@@ -483,13 +468,15 @@ public class FSBackend extends AbstractSharedBackend {
             }
         }
 
-        @Override public long getLastModified() {
+        @Override
+        public long getLastModified() {
             return lastModified;
         }
 
-        @Override public String toString() {
+        @Override
+        public String toString() {
             return "S3DataRecord{" + "identifier=" + getIdentifier() + ", length=" + length
-                + ", lastModified=" + lastModified + '}';
+                    + ", lastModified=" + lastModified + '}';
         }
     }
 }

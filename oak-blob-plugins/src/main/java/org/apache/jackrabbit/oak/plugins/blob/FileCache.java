@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
@@ -309,13 +310,9 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         DataStoreCacheUpgradeUtils.moveDownloadCache(parent);
 
         // Iterate over all files in the cache folder
-        Iterator<File> iter = Files.fileTreeTraverser().postOrderTraversal(cacheRoot)
-            .filter(new Predicate<File>() {
-                @Override public boolean apply(File input) {
-                    return input.isFile() && !normalizeNoEndSeparator(input.getParent())
-                        .equals(cacheRoot.getAbsolutePath());
-                }
-            }).iterator();
+        Iterator<File> iter = StreamSupport.stream(Files.fileTraverser().depthFirstPostOrder(cacheRoot).spliterator(),false)
+            .filter((Predicate<File>) input -> input.isFile() && !normalizeNoEndSeparator(input.getParent())
+                .equals(cacheRoot.getAbsolutePath())).iterator();
         while (iter.hasNext()) {
             File toBeSyncedFile = iter.next();
             try {
